@@ -19,19 +19,6 @@ function addMatrices() {
     displayResult(result);
 }
 
-function subtractMatrices() {
-    const A = parseMatrix(document.getElementById('matrixA').value);
-    const B = parseMatrix(document.getElementById('matrixB').value);
-
-    if (A.length !== B.length || A[0].length !== B[0].length) {
-        displayResult("Ошибка: матрицы должны быть одинакового размера.");
-        return;
-    }
-
-    const result = A.map((row, i) => row.map((val, j) => val - B[i][j]));
-    displayResult(result);
-}
-
 function multiplyMatrices() {
     const A = parseMatrix(document.getElementById('matrixA').value);
     const B = parseMatrix(document.getElementById('matrixB').value);
@@ -54,6 +41,17 @@ function multiplyMatrices() {
     displayResult(result);
 }
 
+function multiplyByScalar(matrixName) {
+    const M = parseMatrix(document.getElementById('matrix' + matrixName).value);
+    const scalar = Number(document.getElementById('scalar').value);
+    if (isNaN(scalar)) {
+        displayResult("Ошибка: введите число для умножения.");
+        return;
+    }
+    const result = M.map(row => row.map(val => val * scalar));
+    displayResult(result);
+}
+
 function transposeMatrix(matrixName) {
     const M = parseMatrix(document.getElementById('matrix' + matrixName).value);
     const result = M[0].map((_, colIndex) => M.map(row => row[colIndex]));
@@ -70,6 +68,19 @@ function determinantMatrix(matrixName) {
 
     const det = determinant(M);
     displayResult("Детерминант: " + det);
+}
+
+function minorMatrix(matrixName) {
+    const M = parseMatrix(document.getElementById('matrix' + matrixName).value);
+    if (M.length < 2 || M[0].length < 2) {
+        displayResult("Ошибка: минор можно вычислить только для матрицы размером хотя бы 2x2.");
+        return;
+    }
+
+    // Минор элемента (1,1) - верхний левый
+    const subMatrix = M.slice(1).map(row => row.slice(1));
+    const det = determinant(subMatrix);
+    displayResult("Минор элемента (1,1): " + det);
 }
 
 // Рекурсивная функция для вычисления детерминанта
