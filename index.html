@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор матриц</title>
+    <title>Расширенный калькулятор матриц</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,11 +16,22 @@
 
             <h2>Матрица B</h2>
             <textarea id="matrixB" placeholder="Введите матрицу B через пробелы и переносы строк"></textarea>
+
+            <h2>Число для умножения</h2>
+            <input type="number" id="scalar" placeholder="Введите число">
         </div>
 
         <div class="buttons">
             <button onclick="addMatrices()">Сложить</button>
             <button onclick="multiplyMatrices()">Умножить</button>
+            <button onclick="multiplyByScalar('A')">Умножить A на число</button>
+            <button onclick="multiplyByScalar('B')">Умножить B на число</button>
+            <button onclick="transposeMatrix('A')">Транспонировать A</button>
+            <button onclick="transposeMatrix('B')">Транспонировать B</button>
+            <button onclick="determinantMatrix('A')">Детерминант A</button>
+            <button onclick="determinantMatrix('B')">Детерминант B</button>
+            <button onclick="minorMatrix('A')">Минор A (элемент 1,1)</button>
+            <button onclick="minorMatrix('B')">Минор B (элемент 1,1)</button>
         </div>
 
         <h2>Результат:</h2>
