@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Калькулятор матриц</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>Калькулятор матриц</h1>
+
+    <form action="/compute" method="post" class="form">
+      <label for="matrix_a">Матрица A (строки — новые строки, числа через пробел)</label>
+      <textarea id="matrix_a" name="matrix_a" rows="6" placeholder="например:&#10;1 2 3&#10;4 5 6">1 2
+3 4</textarea>
+
+      <label for="matrix_b">Матрица B (нужна для +, -, *)</label>
+      <textarea id="matrix_b" name="matrix_b" rows="6" placeholder="например:&#10;7 8&#10;9 10">5 6
+7 8</textarea>
+
+      <label for="operation">Операция</label>
+      <select id="operation" name="operation">
+        <option value="add">A + B</option>
+        <option value="sub">A - B</option>
+        <option value="mul">A × B</option>
+        <option value="transpose">Транспонировать A</option>
+        <option value="det">Определитель A</option>
+        <option value="inverse">Обратная A</option>
+      </select>
+
+      <div class="row">
+        <button type="submit" class="btn">Посчитать</button>
+        <button type="reset" class="btn muted">Очистить</button>
+      </div>
+    </form>
+
+    <section class="note">
+      <strong>Формат ввода:</strong> числа разделяются пробелами, строки — переводом строки. Пример 2×2:
+      <pre>1 2
+3 4</pre>
+      Для операций +, -, × используются обе матрицы. Для определителя/обратной/транспонирования используется только A.
+    </section>
+
+    <footer class="foot">я люблю элементы высшей математики :)</footer>
+  </main>
+</body>
+</html>
