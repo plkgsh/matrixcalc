@@ -1,8 +1,9 @@
-from flask import Flask, request, render_template_string, redirect, url_for
-import math
+from flask import Flask, request, render_template_string, send_from_directory
+import os
+
 app = Flask(__name__)
 
-# -- HTML шаблон результатов (встроен) --
+# --- HTML шаблон страницы с результатом ---
 RESULT_PAGE = """<!doctype html>
 <html lang="ru">
 <head>
@@ -31,12 +32,14 @@ RESULT_PAGE = """<!doctype html>
 </html>
 """
 
-# ---------- вспомогательные функции для матриц ----------
+# --- Маршрут для главной страницы ---
+@app.route("/", methods=["GET"])
+def index():
+    return send_from_directory(".", "index.html")
+
+
+# ---------- вспомогательные функции ----------
 def parse_matrix(text):
-    """
-    Парсит текст в матрицу (list of lists of floats).
-    Формат: строки через \n, элементы через пробел.
-    """
     lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip() != ""]
     if not lines:
         return []
@@ -52,8 +55,6 @@ def parse_matrix(text):
                 raise ValueError(f"Неправильный элемент в строке {i+1}: '{p}'")
         if row_len is None:
             row_len = len(row)
-            if row_len == 0:
-                raise ValueError("Пустая строка в матрице")
         elif len(row) != row_len:
             raise ValueError(f"Строки разной длины (строка {i+1})")
         mat.append(row)
@@ -94,14 +95,12 @@ def det(A):
         raise ValueError("Пустая матрица")
     if n != shape(A)[1]:
         raise ValueError("Определитель возможен только для квадратной матрицы")
-    # вычисляем рекурсивно (на маленьких матрицах нормально)
     if n == 1:
         return A[0][0]
     if n == 2:
         return A[0][0]*A[1][1] - A[0][1]*A[1][0]
     res = 0.0
     for col in range(n):
-        # построим минор
         minor = []
         for i in range(1, n):
             row = []
@@ -109,24 +108,18 @@ def det(A):
                 if j == col: continue
                 row.append(A[i][j])
             minor.append(row)
-        co = ((-1)**col) * A[0][col] * det(minor)
-        res += co
+        res += ((-1)**col) * A[0][col] * det(minor)
     return res
 
 def inverse(A):
     n,_ = shape(A)
     if n != shape(A)[1]:
         raise ValueError("Обратная возможна только для квадратной матрицы")
-    # создаём расширенную матрицу [A | I]
-    # копируем
     M = [row[:] for row in A]
     I = [[float(i==j) for j in range(n)] for i in range(n)]
-    # Прямой ход (Gauss-Jordan)
     for i in range(n):
-        # найдем опорный элемент
         pivot = M[i][i]
         if abs(pivot) < 1e-12:
-            # попробуем поменять местами с нижней строкой
             swap_row = None
             for r in range(i+1, n):
                 if abs(M[r][i]) > 1e-12:
@@ -134,20 +127,17 @@ def inverse(A):
                     break
             if swap_row is None:
                 raise ValueError("Матрица вырождена (нет обратной)")
-            # swap
             M[i], M[swap_row] = M[swap_row], M[i]
             I[i], I[swap_row] = I[swap_row], I[i]
             pivot = M[i][i]
-        # нормализация строки i
         factor = pivot
         M[i] = [v/factor for v in M[i]]
         I[i] = [v/factor for v in I[i]]
-        # зануление других строк
         for r in range(n):
             if r == i: continue
             coef = M[r][i]
             if abs(coef) < 1e-15: continue
-            M[r] = [M[r][c] - coef*M[i][c] for c in range(n)]
+              M[r] = [M[r][c] - coef*M[i][c] for c in range(n)]
             I[r] = [I[r][c] - coef*I[i][c] for c in range(n)]
     return I
 
@@ -161,21 +151,8 @@ def mat_to_text(M):
         lines.append("  ".join(f"{v:.6g}" for v in row))
     return "\n".join(lines)
 
-# ---------- web маршруты ----------
-@app.route("/", methods=["GET"])
-def index():
-    # отдадим содержимое static index.html
-    # проще — прочитаем шаблон из файла index.html, но чтобы не зависеть от файловой структуры,
-    # просто редиректим на статический файл.
-    # Мы храним index.html в корне запуска (пользователь сохранит этот файл рядом).
-    # Если запускаете Flask в dev, просто возвращаем содержимое:
-    try:
-        with open("index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except Exception:
-        # fallback: короткая страница
-        return "<p>Поместите файл index.html в папку приложения и откройте /</p>"
 
+# --- Маршрут для вычислений ---
 @app.route("/compute", methods=["POST"])
 def compute():
     a_text = request.form.get("matrix_a", "")
@@ -187,44 +164,36 @@ def compute():
         A = parse_matrix(a_text) if a_text.strip() else []
         B = parse_matrix(b_text) if b_text.strip() else []
         if op in ("add","sub","mul"):
-            if not A:
-                raise ValueError("Матрица A пуста")
-            if not B:
-                raise ValueError("Матрица B пуста (нужна для выбранной операции)")
+            if not A or not B:
+                raise ValueError("Нужны обе матрицы A и B")
             if op == "add":
                 if shape(A) != shape(B):
-                    raise ValueError("Для сложения размеры матриц должны совпадать")
-                R = add(A,B)
-                result_text = mat_to_text(R)
+                    raise ValueError("Для сложения размеры должны совпадать")
+                result_text = mat_to_text(add(A,B))
             elif op == "sub":
                 if shape(A) != shape(B):
-                    raise ValueError("Для вычитания размеры матриц должны совпадать")
-                R = sub(A,B)
-                result_text = mat_to_text(R)
-            else: # mul
-                R = mul(A,B)
-                result_text = mat_to_text(R)
+                    raise ValueError("Для вычитания размеры должны совпадать")
+                result_text = mat_to_text(sub(A,B))
+            else:
+                result_text = mat_to_text(mul(A,B))
         else:
             if not A:
                 raise ValueError("Матрица A пуста")
             if op == "transpose":
-                R = transpose(A)
-                result_text = mat_to_text(R)
+                result_text = mat_to_text(transpose(A))
             elif op == "det":
                 d = det(A)
-                # если близок к целому, покажем целое
                 if abs(d - round(d)) < 1e-9:
                     d = round(d)
                 result_text = str(d)
             elif op == "inverse":
-                inv = inverse(A)
-                result_text = mat_to_text(inv)
+                result_text = mat_to_text(inverse(A))
             else:
                 raise ValueError("Неизвестная операция")
     except Exception as e:
         err = str(e)
     return render_template_string(RESULT_PAGE, op=op, err=err, result_text=result_text)
 
+
 if __name__ == "__main__":
-    # запускаем на localhost:5000
     app.run(debug=True)
